@@ -2,8 +2,6 @@ import numpy as np
 import tensorflow as tf
 from model import Agent
 
-import os; os.environ['CUDA_VISIBLE_DEVICES']='0'
-
 flags = tf.app.flags
 
 flags.DEFINE_float('LR', 0.0005, 'learning rate')
@@ -23,4 +21,5 @@ def main():
   agent.sess.close()
 
 if __name__ == "__main__":
+  import time; time.sleep(2) # for multiple runs
   main()
