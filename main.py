@@ -10,10 +10,10 @@ flags.DEFINE_float('LR', 0.00025, 'learning rate')
 flags.DEFINE_integer('BATCH_SIZE', 100, 'batch size')
 flags.DEFINE_integer('SEED', 0, 'random seed for reproducibility')
 flags.DEFINE_string('LOGDIR', './tmp', 'path to save event files')
-flags.DEFINE_integer('TRAINING_STEP', 1000000, 'number of training steps')
-flags.DEFINE_boolean('IS_TRAINING', False, 'whether training or not')
-flags.DEFINE_boolean('IS_TESTING', True, 'whether testing or not')
-flags.DEFINE_string('TEST_LOGDIR', './tmp/run1/', 'restore the checkpoint file in test phase')
+flags.DEFINE_integer('TRAINING_STEP', 500000, 'number of training steps')
+flags.DEFINE_boolean('IS_TRAINING', True, 'whether training or not')
+flags.DEFINE_boolean('IS_TESTING', False, 'whether testing or not')
+flags.DEFINE_string('TEST_LOGDIR', './tmp/run4/0.00025', 'restore the checkpoint file in test phase')
 
 FLAGS = flags.FLAGS
 

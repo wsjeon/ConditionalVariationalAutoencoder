@@ -3,6 +3,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim import fully_connected as fc
 import os
+import matplotlib.pyplot as plt
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -11,6 +12,22 @@ def get_idx(labels, idx_len):
   for i in range(10):
     idx.append(np.where(labels == i)[0][:idx_len])
   return np.array(idx)
+
+def get_batch(batch_size, idx, images, random = True):
+  labels_y = np.random.randint(10, size = batch_size)
+  if random:
+    noise = np.random.randint(2, size = batch_size) * 2 - 1
+  else:
+    noise = 1
+  labels_x = (labels_y + noise) % 10
+  idx_y = idx[(labels_y, np.random.randint(idx.shape[1], size = batch_size))]
+  idx_x = idx[(labels_x, np.random.randint(idx.shape[1], size = batch_size))]
+  images_y = images[idx_y, :]
+  images_x = images[idx_x, :]
+  return [images_y, images_x], [labels_y, labels_x]
+
+#def plot_data(image, label):
+
 
 class Agent(object):
   def __init__(self, Dataset):
@@ -87,21 +104,11 @@ class Agent(object):
     self.summary_writer = tf.summary.FileWriter(self.log_dir)
 
   def build_saver(self):
-    self.saver = tf.train.Saver()
+    self.saver = tf.train.Saver(max_to_keep = 1)
 
   def learn(self):
     idx_train = get_idx(self.train_labels, 4987)
     idx_val = get_idx(self.val_labels, 434)
-
-    def get_batch(batch_size, idx, images):
-      labels_y = np.random.randint(10, size = batch_size)
-      noise = np.random.randint(2, size = batch_size) * 2 - 1
-      labels_x = (labels_y + noise) % 10
-      idx_y = idx[(labels_y, np.random.randint(idx.shape[1], size = batch_size))]
-      idx_x = idx[(labels_x, np.random.randint(idx.shape[1], size = batch_size))]
-      images_y = images[idx_y, :]
-      images_x = images[idx_x, :]
-      return [images_y, images_x], [labels_y, labels_x]
 
     for step in range(FLAGS.TRAINING_STEP):
       batch = get_batch(FLAGS.BATCH_SIZE, idx_train, self.train_images)
@@ -110,7 +117,7 @@ class Agent(object):
       self.summary_writer.add_summary(summary_str, (step + 1) * FLAGS.BATCH_SIZE)
 
       if step % 50 == 0:
-        self.saver.save(self.sess, self.log_dir)
+        self.saver.save(self.sess, os.path.join(self.log_dir, 'model'), global_step = step)
         print self.log_dir
         batch = get_batch(FLAGS.BATCH_SIZE, idx_val, self.val_images)
         loss_val, summary_str = self.sess.run([self.loss, self.summary_op_val],
@@ -124,5 +131,26 @@ class Agent(object):
 
   def test(self):
     idx_test = get_idx(self.test_labels, 892)
-    self.saver.restore(self.sess, FLAGS.TEST_LOGDIR)
+    self.saver.restore(self.sess, os.path.join(FLAGS.TEST_LOGDIR, 'model-131950'))
+
+    self.y_ = tf.placeholder(tf.float32, [None, 784])
+
+    def net(y_):
+      with slim.arg_scope([fc], activation_fn = None, weights_initializer = None,
+          biases_initializer = None, reuse = True):
+        z = tf.random_normal(tf.stack([tf.shape(y_)[0], 20 * 2]))
+        h2 = fc(tf.concat([y_, z], 1), 400 * 2, activation_fn = tf.nn.relu, scope = "fc3")
+        x = fc(h2, 784, scope = "fc4")
+      return x
+
+    x = net(self.y_)
+    print x
+
+    for step in range(100):
+      batch = get_batch(1, idx_test, self.test_images)
+      output = self.sess.run(x, feed_dict = {self.y_: batch[0][1]})
+      print output
+#      plt.title('label: {0}'.format(output[1][1]))
+      plt.imshow(output.reshape(28, 28), cmap='gray')
+      plt.show()
 
