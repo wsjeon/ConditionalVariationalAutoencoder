@@ -2,13 +2,29 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.slim import fully_connected as fc
-from tensorflow.examples.tutorials.mnist import input_data
 import os
 
 FLAGS = tf.app.flags.FLAGS
 
+def get_idx(labels, idx_len):
+  idx = []
+  for i in range(10):
+    idx.append(np.where(labels == i)[0][:idx_len])
+  return np.array(idx)
+
 class Agent(object):
-  def __init__(self):
+  def __init__(self, Dataset):
+    """ Load datasets """
+    self.Dataset = Dataset
+    if FLAGS.IS_TRAINING:
+      self.train_images = Dataset.train.images
+      self.train_labels = Dataset.train.labels
+      self.val_images = Dataset.validation.images
+      self.val_labels = Dataset.validation.labels
+    if FLAGS.IS_TESTING:
+      self.test_images = Dataset.test.images
+      self.test_labels = Dataset.test.labels
+
     """ Fix random sees for reproducibility """
 #    tf.set_random_seed(FLAGS.SEED)
 
@@ -67,21 +83,15 @@ class Agent(object):
     self.log_dir = os.path.join(tmp_dir, str(FLAGS.LR))
 
     self.summary_op = tf.summary.scalar('lower bound (train)', - self.loss)
-    self.summary_op_test = tf.summary.scalar('lower bound (test)', - self.loss)
+    self.summary_op_val = tf.summary.scalar('lower bound (val)', - self.loss)
     self.summary_writer = tf.summary.FileWriter(self.log_dir)
 
   def build_saver(self):
     self.saver = tf.train.Saver()
 
   def learn(self):
-    mnist = input_data.read_data_sets('~/webdav/datasets/MNIST')
-    train_images = mnist.train.images; train_labels = mnist.train.labels
-    test_images = mnist.test.images; test_labels = mnist.test.labels
-    idx_train = []; idx_test = []
-    for i in range(10):
-      idx_train.append(np.where(train_labels == i)[0][:4987])
-      idx_test.append(np.where(test_labels == i)[0][:892])
-    idx_train = np.array(idx_train); idx_test = np.array(idx_test)
+    idx_train = get_idx(self.train_labels, 4987)
+    idx_val = get_idx(self.val_labels, 434)
 
     def get_batch(batch_size, idx, images):
       labels_y = np.random.randint(10, size = batch_size)
@@ -94,19 +104,25 @@ class Agent(object):
       return [images_y, images_x], [labels_y, labels_x]
 
     for step in range(FLAGS.TRAINING_STEP):
-      batch = get_batch(FLAGS.BATCH_SIZE, idx_train, train_images)
+      batch = get_batch(FLAGS.BATCH_SIZE, idx_train, self.train_images)
       _, loss, summary_str = self.sess.run([self.optimizer, self.loss, self.summary_op],
           feed_dict = {self.y_: batch[0][0], self.x_: batch[0][1]})
       self.summary_writer.add_summary(summary_str, (step + 1) * FLAGS.BATCH_SIZE)
 
       if step % 50 == 0:
         self.saver.save(self.sess, self.log_dir)
-        batch = get_batch(FLAGS.BATCH_SIZE, idx_test, test_images)
-        loss_test, summary_str = self.sess.run([self.loss, self.summary_op_test],
+        print self.log_dir
+        batch = get_batch(FLAGS.BATCH_SIZE, idx_val, self.val_images)
+        loss_val, summary_str = self.sess.run([self.loss, self.summary_op_val],
             feed_dict = {self.y_: batch[0][0], self.x_:batch[0][1]})
         self.summary_writer.add_summary(summary_str, (step + 1) * FLAGS.BATCH_SIZE)
         print 'step: {0}\t|\
                training samples: {1}\t|\
                lower bound (train): {2}\t|\
-               lower bound (test): {3}'\
-               .format(step, (step + 1) * FLAGS.BATCH_SIZE, -loss, -loss_test)
+               lower bound (val): {3}'\
+               .format(step, (step + 1) * FLAGS.BATCH_SIZE, -loss, -loss_val)
+
+  def test(self):
+    idx_test = get_idx(self.test_labels, 892)
+    self.saver.restore(self.sess, FLAGS.TEST_LOGDIR)
+
