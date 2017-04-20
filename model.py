@@ -68,8 +68,8 @@ class Agent(object):
       with slim.arg_scope([fc], activation_fn = None, weights_initializer = init_w,
           biases_initializer = init_b):
         h1 = fc(tf.concat([x_, y_], 1), 400 * 2, activation_fn = tf.nn.relu, scope = "fc0")
-        mean = fc(h1, 20 * 2, scope = "fc1")
-        logvar = fc(h1, 20 * 2, scope = "fc2")
+        mean = fc(h1, FLAGS.LATENT_DIM, scope = "fc1")
+        logvar = fc(h1, FLAGS.LATENT_DIM, scope = "fc2")
         eps = tf.random_normal(tf.shape(logvar))
         z = mean + tf.exp(0.5 * logvar) * eps # latent variable
         h2 = fc(tf.concat([y_, z], 1), 400 * 2, activation_fn = tf.nn.relu, scope = "fc3")
@@ -90,14 +90,15 @@ class Agent(object):
     self.optimizer = optimizer.minimize(self.loss)
 
   def build_summary(self):
+    self.log_dir = os.path.join(*(FLAGS.LOGDIR, str(FLAGS.LR), str(FLAGS.LATENT_DIM)))
     run_count = 0
     while True:
-      tmp_dir = os.path.join(FLAGS.LOGDIR, 'run%d' % run_count)
+      tmp_dir = os.path.join(self.log_dir, 'run%d' % run_count)
       if os.path.exists(tmp_dir):
         run_count += 1
       else:
         break
-    self.log_dir = os.path.join(tmp_dir, str(FLAGS.LR))
+    self.log_dir = tmp_dir
 
     self.summary_op = tf.summary.scalar('lower bound (train)', - self.loss)
     self.summary_op_val = tf.summary.scalar('lower bound (val)', - self.loss)
@@ -153,4 +154,3 @@ class Agent(object):
 #      plt.title('label: {0}'.format(output[1][1]))
       plt.imshow(output.reshape(28, 28), cmap='gray')
       plt.show()
-
