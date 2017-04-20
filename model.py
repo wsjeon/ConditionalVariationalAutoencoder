@@ -74,7 +74,7 @@ class Agent(object):
     self.saver = tf.train.Saver()
 
   def learn(self):
-    mnist = input_data.read_data_sets('MNIST')
+    mnist = input_data.read_data_sets('~/webdav/datasets/MNIST')
     train_images = mnist.train.images; train_labels = mnist.train.labels
     test_images = mnist.test.images; test_labels = mnist.test.labels
     idx_train = []; idx_test = []
