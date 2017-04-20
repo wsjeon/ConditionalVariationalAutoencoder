@@ -85,7 +85,8 @@ class Agent(object):
 
     def get_batch(batch_size, idx, images):
       labels_y = np.random.randint(10, size = batch_size)
-      labels_x = (labels_y + 1) % 10
+      noise = np.random.randint(2, size = batch_size) * 2 - 1
+      labels_x = (labels_y + noise) % 10
       idx_y = idx[(labels_y, np.random.randint(idx.shape[1], size = batch_size))]
       idx_x = idx[(labels_x, np.random.randint(idx.shape[1], size = batch_size))]
       images_y = images[idx_y, :]
