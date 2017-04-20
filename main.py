@@ -14,6 +14,7 @@ flags.DEFINE_integer('TRAINING_STEP', 500000, 'number of training steps')
 flags.DEFINE_boolean('IS_TRAINING', True, 'whether training or not')
 flags.DEFINE_boolean('IS_TESTING', False, 'whether testing or not')
 flags.DEFINE_string('TEST_LOGDIR', './tmp/run4/0.00025', 'restore the checkpoint file in test phase')
+flags.DEFINE_integer('LATENT_DIM', 40, 'dimension of latent variables')
 
 FLAGS = flags.FLAGS
 
